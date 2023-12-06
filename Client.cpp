@@ -12,52 +12,55 @@ struct Person {
 }Stud1;
 
 
-long pred_size;
-int answer;
+int main() {
+	long size_pred;
+	int answer;
+	setlocale(LC_ALL, "ru");
+	ofstream fout;
+	ifstream fin;
+	const char* nameA = "D:/answer.txt";
+	const char* nameR = "D:/request.txt";
 
-int main()
-{
-	setlocale(LC_ALL, "rus");
-	const char* nameRequest = "D:\REQUEST.txt";
-	const char* nameAnswer = "D:\ANSWER.txt";
-	
-	ofstream f_REQ;
-	ifstream f_ANS;
-	
-	
+	size_pred = 0;
+
 	while (true) {
-		//Передача данных от клиента серверу
-		cout << "Введите запрос: Имя студента и его оценки по: диффурам, физике, матану, ооп " << endl;
-		cin >> Stud1.name >> Stud1.diffury >> Stud1.physics >> Stud1.maths >> Stud1.oop;
-		cout << Stud1.name << " " << Stud1.diffury << " " << Stud1.physics << " " << Stud1.maths << " " << Stud1.oop << endl;
-		
-		f_REQ.open(nameRequest, ios::app|| ios::binary);
-		f_REQ.write((char*)&Stud1, sizeof(Stud1));
-		f_REQ.close();
-
-		//поступил ли ответ от сервера?
-		f_ANS.open(nameAnswer, ios::binary);
-		f_ANS.seekg(0, ios::end);
-		pred_size = f_ANS.tellg();
-		while (pred_size > f_ANS.tellg()) {
-			Sleep(100);
-			f_ANS.seekg(0, ios::end);
+		cout << "Введите данные оценки студента: Диффуры, Физика, Матан, ООП\n";
+		cin >> Stud1.name >> Stud1.diffury>> Stud1.physics >> Stud1.maths >> Stud1.oop;
+		try {
+			fout.open(nameR, ios::app);
 		}
-		f_ANS.seekg(pred_size, ios::beg);
-		f_ANS.read((char*)&answer, sizeof(answer));
-		f_ANS.close();
-		
-		cout << answer << endl;
+		catch (exception& е) {
+			cout << "Error!Ошибка чтения!" << endl;
+			continue;
+		}
+
+		fout.write((char*)&Stud1, sizeof(Stud1));
+		fout.close();
+		cout << "Добавлено \n";
+
+		try {
+			fin.open(nameA);
+		}
+		catch (exception& e) {
+			cout << "Error! Ошибка чтения!" << endl;
+			continue;
+		}
+		fin.seekg(0, ios::end);
+		while (size_pred >= fin.tellg()) {
+			Sleep(100);
+			fin.seekg(0, ios::end);
+		}
+
+		fin.seekg(size_pred, ios::beg);
+		fin.read((char*)&answer, sizeof(answer));
+		size_pred = fin.tellg();
+		fin.close();
 
 		switch (answer) {
-		case 0: {cout << "С новым годом, вас отчислили!! \n"; break; }
-		case 1: {cout << "Вас не отчислили :( \n"; break; }
-		case 2: {cout << "Поздравляем, у вас будет стипендия \n"; break; }
+		case 0: {cout << "Вас отчислили :(\n"; break; }
+		case 1: {cout << "Вы живы\n"; break; }
+		case 2: {cout << "Вы на стипендии\n"; break; }
 		}
-	
 	}
-
-
-
-
+	return 0;
 }
