@@ -1,53 +1,79 @@
-#include <iostream>
-#include <fstream>
-#include <string>
 #include <mpi.h>
+#include <iostream>
+#include <vector>
+#include <ctime>
+#include <cstdlib>
+using namespace std;
 
-#define MAX_FILENAME_LENGTH 256
-#define MAX_NUMBER_COUNT 1000
+// Функция для генерации последовательной матрицы
+void generateMatrix(vector<double>& matrix, int n) {
+    srand(time(0));
+    for (int i = 0; i < n * n; ++i) {
+        matrix[i] = static_cast<double>(rand()) / RAND_MAX;
+    }
+}
 
+// Функция для вывода матрицы
+void printMatrix(const vector<double>& matrix, int n) {
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            cout << matrix[i * n + j] << " ";
+        }
+        cout << endl;
+    }
+}
+
+// Основная функция
 int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
-
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    if (size < 2) {
-        std::cout << "Должно быть как минимум 2 процесса для работы программы." << std::endl;
-        MPI_Finalize();
-        return 1;
+    int n;
+    vector<double> matrix;
+    vector<double> local_matrix;
+
+    if (rank == 0) {
+        cout << "Enter the size of the matrix (n): ";
+        cin >> n;
+        matrix.resize(n * n);
+        generateMatrix(matrix, n);
+        cout << "Original matrix:" << endl;
+        printMatrix(matrix, n);
     }
 
-    // Имена исходных файлов
-    std::string filenames[] = { "file1.txt", "file2.txt", "file3.txt" };
+    // Передача размера матрицы всем процессам
+    MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    // Создание имени выходного файла
-    std::string output_filenames[3];
-    for (int i = 0; i < 3; i++) {
-        output_filenames[i] = filenames[i] + "_res";
+    // Изменение размера локальной матрицы шоб хранениь блок строк, обрабатываемый каждым процессом
+    local_matrix.resize(n * (n / size));
+
+    // Распределяем строки матрицы между всеми процессами
+    MPI_Scatter(matrix.data(), n * (n / size), MPI_DOUBLE, local_matrix.data(), n * (n / size), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    // Локальная транспозиция
+    vector<double> local_transpose(n * (n / size));
+    for (int i = 0; i < n / size; ++i) {
+        for (int j = 0; j < n; ++j) {
+            local_transpose[j * (n / size) + i] = local_matrix[i * n + j];
+        }
     }
 
-    // Чтение и обработка данных
-    std::ifstream input_file(filenames[rank - 1]);
-    std::ofstream output_file(output_filenames[rank - 1]);
+    // Сборка транспонированных блоков обратно в корневой процесс
+    MPI_Gather(local_transpose.data(), n * (n / size), MPI_DOUBLE, matrix.data(), n * (n / size), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    double numbers[MAX_NUMBER_COUNT];
-    int count = 0;
-
-    double number;
-    while (input_file >> number) {
-        int int_part = static_cast<int>(number);
-        numbers[count] = int_part;
-        count++;
+    if (rank == 0) {
+        // Транспонирование собранных блоков для получения окончательной транспонированной матрицы
+        vector<double> final_transpose(n * n);
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                final_transpose[j * n + i] = matrix[i * n + j];
+            }
+        }
+        cout << "Transposed matrix:" << endl;
+        printMatrix(final_transpose, n);
     }
-
-    for (int i = 0; i < count; i++) {
-        output_file << numbers[i] << std::endl;
-    }
-
-    input_file.close();
-    output_file.close();
 
     MPI_Finalize();
     return 0;
