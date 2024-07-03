@@ -1,43 +1,33 @@
+
 #include <iostream>
-#include <vector>
 #include <omp.h>
+using namespace std;
+double f(double x) {
+    //функция которую будем интегрировать
+    return x * x;
+}
 
-// Функция для вычисления определителя матрицы
-double determinant(const std::vector<std::vector<double>>& matrix) {
-    int n = matrix.size();
-    double det = 1.0;
+double trapezoidal_integration(double a, double b, int n) {
+    double h = (b - a) / n;
+    double sum = 0.5 * (f(a) + f(b));
 
-    std::vector<std::vector<double>> tempMatrix = matrix;
-
-    // Прямой ход метода Гаусса
-    for (int k = 0; k < n; k++) {
-#pragma omp parallel for reduction(*:det)
-        for (int i = k + 1; i < n; i++) {
-            double factor = tempMatrix[i][k] / tempMatrix[k][k];
-            for (int j = k; j < n; j++) {
-                tempMatrix[i][j] -= factor * tempMatrix[k][j];
-            }
-        }
+#pragma omp parallel for reduction(+:sum)
+    for (int i = 1; i < n; i++) {
+        double x = a + i * h;
+        sum += f(x);
     }
 
-    // Вычисление определителя как произведение диагональных элементов
-    for (int i = 0; i < n; i++) {
-        det *= tempMatrix[i][i];
-    }
-
-    return det;
+    return h * sum;
 }
 
 int main() {
-    // Создание матрицы (пример)
-    std::vector<std::vector<double>> matrix = { {2, 3, 4},
-                                               {1, 5, 7},
-                                               {8, 6, 9} 
-                                                };
+    setlocale(LC_ALL, "rus");
+    double a = 0.0;
+    double b = 1.0;
+    int n = 1000; // Количество разбиений
 
-    // Вычисление определителя
-    double det = determinant(matrix);
-    std::cout << "Determinant: " << det << std::endl;
+    double result = trapezoidal_integration(a, b, n);
+    cout << "Результат интегрирования: " << result << std::endl;
 
     return 0;
 }
