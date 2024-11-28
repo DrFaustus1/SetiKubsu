@@ -16,9 +16,18 @@ double f(double x) {
     return pow(x, 2) - 2 * x + 1; // Можно изменить на любую другую функцию
 }
 
-// Метод Эйткена для интерполяции
+// Метод Эйткена для интерполяции с учетом сходимости
 double aitkenInterpolation(const vector<Point>& points, double x) {
     int n = points.size();
+
+    // Проверка на близость к известным точкам
+    const double epsilon = 1e-6; // Порог для близости
+    for (const auto& point : points) {
+        if (fabs(x - point.x) < epsilon) {
+            return point.y; // Возвращаем известное значение, если x близок к одной из точек
+        }
+    }
+
     vector<vector<double>> Q(n, vector<double>(n));
 
     // Заполнение таблицы разностей
@@ -37,7 +46,7 @@ double aitkenInterpolation(const vector<Point>& points, double x) {
     double term = 1.0;
 
     for (int j = 1; j < n; ++j) {
-        term *= (x - points[j - 1].x);      //P(x) = Q[0][0] + Q[0][1](x - x₀) + Q[0][2](x - x₀)(x - x₁) + ...
+        term *= (x - points[j - 1].x);      // P(x) = Q[0][0] + Q[0][1](x - x₀) + Q[0][2](x - x₀)(x - x₁) + ...
         P += Q[0][j] * term;
     }
 
@@ -53,14 +62,15 @@ int main() {
     }
 
     // Вычисление и вывод интерполированных значений
-    ofstream in;
-    in.open("text.txt");
+    ofstream out("text.txt");
     double xmin = 0.0, xmax = 4.0, step = 0.5;
-    cout << "Интерполированные значения записаны в файл text.txt";
+    cout << "Интерполированные значения записаны в файл text.txt" << endl;
+
     for (double x = xmin; x <= xmax; x += step) {
         double interpolatedValue = aitkenInterpolation(points, x);
-        in <<  x << " " << interpolatedValue << endl;
+        out << x << " " << interpolatedValue << endl;
     }
 
+    out.close(); // Закрываем файл после записи
     return 0;
 }
