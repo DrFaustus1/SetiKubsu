@@ -1,0 +1,66 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <fstream>
+using namespace std;
+
+// Определение структуры для хранения точек
+struct Point {
+    double x;
+    double y;
+};
+
+// Явно заданная функция f(x)
+double f(double x) {
+    // Например, полином: f(x) = x^2 - 2x + 1
+    return pow(x, 2) - 2 * x + 1; // Можно изменить на любую другую функцию
+}
+
+// Метод Эйткена для интерполяции
+double aitkenInterpolation(const vector<Point>& points, double x) {
+    int n = points.size();
+    vector<vector<double>> Q(n, vector<double>(n));
+
+    // Заполнение таблицы разностей
+    for (int i = 0; i < n; ++i) {
+        Q[i][0] = points[i].y;
+    }
+
+    for (int j = 1; j < n; ++j) {
+        for (int i = 0; i < n - j; ++i) {
+            Q[i][j] = (Q[i + 1][j - 1] - Q[i][j - 1]) / (points[i + j].x - points[i].x);
+        }
+    }
+
+    // Вычисление интерполированного значения
+    double P = Q[0][0];
+    double term = 1.0;
+
+    for (int j = 1; j < n; ++j) {
+        term *= (x - points[j - 1].x);      //P(x) = Q[0][0] + Q[0][1](x - x₀) + Q[0][2](x - x₀)(x - x₁) + ...
+        P += Q[0][j] * term;
+    }
+
+    return P;
+}
+
+int main() {
+    setlocale(LC_ALL, "rus");
+    // Задание точек на основе функции f(x)
+    vector<Point> points;
+    for (double x = 0; x <= 4; x += 1.0) {
+        points.push_back({ x, f(x) });
+    }
+
+    // Вычисление и вывод интерполированных значений
+    ofstream in;
+    in.open("text.txt");
+    double xmin = 0.0, xmax = 4.0, step = 0.5;
+    cout << "Интерполированные значения записаны в файл text.txt";
+    for (double x = xmin; x <= xmax; x += step) {
+        double interpolatedValue = aitkenInterpolation(points, x);
+        in <<  x << " " << interpolatedValue << endl;
+    }
+
+    return 0;
+}
