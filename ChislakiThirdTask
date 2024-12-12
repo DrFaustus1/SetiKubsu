@@ -1,0 +1,71 @@
+#include <iostream>
+#include <cmath>
+#include <vector>
+#include <functional>
+using namespace std;
+
+
+double f(double x) {
+    return x * x - 2; // Пример функции
+}
+
+double parabolicInterpolation(double x0, double x1, double x2, function<double(double)> func) {
+    double y0 = func(x0);
+    double y1 = func(x1);
+    double y2 = func(x2);
+
+    // Используем формулы для нахождения нового x
+    double denominator = (y0 - y1) * (y0 - y2) * (y1 - y2);
+    if (denominator == 0) return NAN; // Избегаем деления на ноль
+
+    double x3 = (x0 * y1 * y2 / ((y0 - y1) * (y0 - y2))) +
+        (x1 * y0 * y2 / ((y1 - y0) * (y1 - y2))) +
+        (x2 * y0 * y1 / ((y2 - y0) * (y2 - y1)));
+
+    return x3;
+}
+
+vector<double> findAllRoots(double a, double b, double tol, function<double(double)> func) {
+    vector<double> roots;
+
+    // Разделяем отрезок на подотрезки и ищем корни
+    for (double x = a; x < b; x += 0.1) {
+        double x0 = x;
+        double x1 = x + 0.1;
+        double x2 = x + 0.2;
+
+        if (func(x0) * func(x1) <= 0 || func(x1) * func(x2) <= 0) {//если нашелся корень, заходим в цикл
+            while (fabs(func(x1)) > tol) {
+                double new_x = parabolicInterpolation(x0, x1, x2, func);
+                
+                if (new_x < a || new_x > b) 
+                    break; // Проверка на границы, если вышли за них, то выходим из цикла 
+                
+                if (fabs(func(new_x)) < tol) {
+                    roots.push_back(new_x);     //добавляем корень в вектор roots
+                    break;
+                }
+                // Если корень не найден, то обновляем точки
+                x0 = x1;
+                x1 = new_x;
+                x2 = x1 + 0.1; // Обновляем третью точку
+            }
+        }
+    }
+
+    return roots;
+}
+
+int main() {
+    double a = 0.0;
+    double b = 2.0;
+    double tol = 1e-5;
+
+    vector<double> roots = findAllRoots(a, b, tol, f);
+
+    for (double root : roots) {
+        cout << "Корни найдены: " << root << endl;
+    }
+
+    return 0;
+}
